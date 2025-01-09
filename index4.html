@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Swing Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    form input, form select, form button, form textarea {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    form button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table th, table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    table th {
+      background-color: #f4f4f9;
+      font-weight: bold;
+    }
+    .delete-btn {
+      color: white;
+      background-color: red;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Golf Swing Tracker</h1>
+    <form id="swingForm">
+      <textarea id="thoughts" placeholder="Enter multiple swing thoughts..." rows="3" required></textarea>
+      <select id="drill" required>
+        <option value="" disabled selected>Select a drill</option>
+        <option value="Crush the Can">Crush the Can</option>
+        <option value="Alignment Practice">Alignment Practice</option>
+        <option value="Tempo Training">Tempo Training</option>
+        <option value="Basket Drill">Basket Drill</option>
+      </select>
+      <select id="club" required>
+        <option value="" disabled selected>Select a club</option>
+        <option value="LW">LW</option>
+        <option value="SW">SW</option>
+        <option value="AW">AW</option>
+        <option value="PW">PW</option>
+      </select>
+      <input id="accuracy" type="text" placeholder="Enter accuracy as a fraction (e.g., 28/45)" required>
+      <button type="submit">Log Swing</button>
+    </form>
+
+    <h2>Logged Swings</h2>
+    <table id="logTable">
+      <thead>
+        <tr>
+          <th>Thoughts</th>
+          <th>Drill</th>
+          <th>Club</th>
+          <th>Accuracy</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Logged swings will appear here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const tableBody = document.getElementById('logTable').getElementsByTagName('tbody')[0];
+    const swingForm = document.getElementById('swingForm');
+
+    // Load swings from LocalStorage
+    function loadSwings() {
+      const savedSwings = JSON.parse(localStorage.getItem('swings')) || [];
+      console.log('Loaded swings from LocalStorage:', savedSwings);
+      savedSwings.forEach((swing, index) => addSwingToTable(swing, index));
+      addDeleteEventListeners();
+    }
+
+    // Save swings to LocalStorage
+    function saveSwings(swings) {
+      localStorage.setItem('swings', JSON.stringify(swings));
+      console.log('Saved swings to LocalStorage:', swings);
+    }
+
+    // Add swing to the displayed table
+    function addSwingToTable(swing, index) {
+      const newRow = tableBody.insertRow();
+      const thoughts = swing.thoughts ? swing.thoughts.replace(/\n/g, '<br>') : 'N/A';
+      const drill = swing.drill || 'N/A';
+      const club = swing.club || 'N/A';
+      const accuracy = swing.accuracy || 'N/A';
+
+      newRow.innerHTML = `
+        <td>${thoughts}</td>
+        <td>${drill}</td>
+        <td>${club}</td>
+        <td>${accuracy}</td>
+        <td><button class="delete-btn" data-index="${index}">Delete</button></td>
+      `;
+    }
+
+    // Handle form submission
+    swingForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const thoughts = document.getElementById('thoughts').value;
+      const drill = document.getElementById('drill').value;
+      const club = document.getElementById('club').value;
+      const accuracyInput = document.getElementById('accuracy').value;
+
+      const [numerator, denominator] = accuracyInput.split('/').map(Number);
+      const accuracyPercentage = ((numerator / denominator) * 100).toFixed(2);
+      const accuracy = `${numerator}/${denominator} (${accuracyPercentage}%)`;
+
+      const swing = { thoughts, drill, club, accuracy };
+
+      const savedSwings = JSON.parse(localStorage.getItem('swings')) || [];
+      savedSwings.push(swing);
+      saveSwings(savedSwings);
+
+      reloadTable();
+      swingForm.reset();
+    });
+
+    // Delete specific swing
+    function deleteSwing(index) {
+      const savedSwings = JSON.parse(localStorage.getItem('swings')) || [];
+      savedSwings.splice(index, 1);
+      saveSwings(savedSwings);
+      reloadTable();
+    }
+
+    // Reload the table
+    function reloadTable() {
+      tableBody.innerHTML = '';
+      const savedSwings = JSON.parse(localStorage.getItem('swings')) || [];
+      savedSwings.forEach((swing, index) => addSwingToTable(swing, index));
+      addDeleteEventListeners();
+    }
+
+    // Add event listeners to delete buttons
+    function addDeleteEventListeners() {
+      const deleteButtons = document.querySelectorAll('.delete-btn');
+      deleteButtons.forEach((button) => {
+        button.addEventListener('click', (e) => {
+          const index = e.target.dataset.index;
+          deleteSwing(index);
+        });
+      });
+    }
+
+    loadSwings();
+  </script>
+</body>
+</html>
